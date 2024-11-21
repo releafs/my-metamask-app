@@ -1,37 +1,57 @@
 import streamlit as st
-import time
+from web3 import Web3
 
-# Debugging log container
-st.title("MetaMask Integration Debugging")
-debug_logs = st.empty()
+# Connect to the Ethereum mainnet via Infura or another provider
+INFURA_URL = "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"
+web3 = Web3(Web3.HTTPProvider(INFURA_URL))
 
-def log_debug(message):
-    if "debug_logs" not in st.session_state:
-        st.session_state["debug_logs"] = []
-    st.session_state["debug_logs"].append(f"[{time.strftime('%H:%M:%S')}] {message}")
-    with debug_logs.container():
-        st.markdown("### Debug Logs")
-        for log in st.session_state["debug_logs"]:
-            st.code(log)
+# Function to fetch token balances
+def fetch_token_balance(wallet_address, token_address):
+    # ERC-20 token ABI for 'balanceOf'
+    token_abi = [
+        {
+            "constant": True,
+            "inputs": [{"name": "_owner", "type": "address"}],
+            "name": "balanceOf",
+            "outputs": [{"name": "balance", "type": "uint256"}],
+            "type": "function",
+        }
+    ]
+    token_contract = web3.eth.contract(address=Web3.to_checksum_address(token_address), abi=token_abi)
+    balance = token_contract.functions.balanceOf(Web3.to_checksum_address(wallet_address)).call()
+    return balance
 
-log_debug("App started.")
+# Streamlit app UI
+st.title("View Your Tokens")
+st.markdown("Connect your wallet and view your ERC-20 token balances.")
 
-try:
-    st.markdown("## Connecting to MetaMask")
-    log_debug("Rendering MetaMask connection iframe...")
-    st.components.v1.html(
-        """
-        <iframe
-            src="frontend/public/index.html"
-            style="border:none; width:100%; height:400px;"
-            scrolling="no"
-        ></iframe>
-        """,
-        height=400,
-    )
-    log_debug("Iframe rendered successfully.")
-except Exception as e:
-    log_debug(f"Error rendering iframe: {e}")
-    st.error(f"Error: {e}")
+# Wallet connection
+wallet_address = st.text_input("Enter your wallet address:")
+if wallet_address:
+    if web3.is_address(wallet_address):
+        st.success(f"Connected Wallet: {wallet_address}")
 
-log_debug("App finished rendering.")
+        # Add token contracts you want to fetch
+        tokens = {
+            "USDT (Tether)": "0xdac17f958d2ee523a2206206994597c13d831ec7",  # Example: Tether (USDT) contract
+            "DAI (Dai Stablecoin)": "0x6b175474e89094c44da98b954eedeac495271d0f",  # Example: DAI contract
+        }
+
+        # Display token balances
+        st.markdown("### Token Balances")
+        for token_name, token_address in tokens.items():
+            try:
+                balance = fetch_token_balance(wallet_address, token_address)
+                st.write(f"{token_name}: {balance / (10 ** 18):,.4f}")
+            except Exception as e:
+                st.error(f"Error fetching balance for {token_name}: {e}")
+    else:
+        st.error("Invalid wallet address. Please enter a valid Ethereum address.")
+
+# Footer
+st.markdown(
+    """
+    ---
+    **Disclaimer:** This app uses the Ethereum mainnet via Infura. Ensure you have an active internet connection.
+    """
+)
