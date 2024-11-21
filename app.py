@@ -1,49 +1,38 @@
 import streamlit as st
+import time
 
-# Title of the app
-st.title("MetaMask Integration with Debugging")
-
-# Debug log container
+# Debugging log container
+st.title("MetaMask Integration Debugging")
 debug_logs = st.empty()
 
-# Define a container for the wallet connection UI
-st.markdown("## Wallet Connection")
-st.components.v1.html(
-    """
-    <iframe
-        src="public/index.html"
-        style="border:none; width:100%; height:300px;"
-        scrolling="no"
-    ></iframe>
-    <script>
-      window.addEventListener('message', (event) => {
-        if (event.origin !== window.location.origin) return;
+def log_debug(message):
+    if "debug_logs" not in st.session_state:
+        st.session_state["debug_logs"] = []
+    st.session_state["debug_logs"].append(f"[{time.strftime('%H:%M:%S')}] {message}")
+    with debug_logs.container():
+        st.markdown("### Debug Logs")
+        for log in st.session_state["debug_logs"]:
+            st.code(log)
 
-        const message = event.data;
+log_debug("App started.")
 
-        // Send debug logs back to Streamlit
-        fetch('/debug', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(message),
-        });
-      });
-    </script>
-    """,
-    height=400,
-)
+# Simulate a loading process
+try:
+    st.markdown("## Connecting to MetaMask")
+    log_debug("Rendering MetaMask connection iframe...")
+    st.components.v1.html(
+        """
+        <iframe
+            src="public/index.html"
+            style="border:none; width:100%; height:300px;"
+            scrolling="no"
+        ></iframe>
+        """,
+        height=400,
+    )
+    log_debug("Iframe rendered successfully.")
+except Exception as e:
+    log_debug(f"Error rendering iframe: {e}")
+    st.error(f"Error: {e}")
 
-# Display incoming debug messages
-if "debug_logs" not in st.session_state:
-    st.session_state["debug_logs"] = []
-
-# Update debug logs from the incoming messages
-if "debug" in st.query_params:
-    debug_message = st.query_params["debug"][0]
-    st.session_state["debug_logs"].append(debug_message)
-
-# Show debug logs
-with debug_logs.container():
-    st.markdown("### Debug Logs")
-    for log in st.session_state["debug_logs"]:
-        st.code(log)
+log_debug("App finished rendering.")
