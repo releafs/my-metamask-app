@@ -10,20 +10,33 @@
       const provider = await detectEthereumProvider();
 
       if (provider) {
-        // Check if MetaMask is installed
+        console.log('[DEBUG] MetaMask provider detected.');
+
         if (provider !== window.ethereum) {
           alert('Multiple wallets detected. Please use MetaMask!');
         }
 
         try {
-          // Request wallet connection
+          console.log('[DEBUG] Requesting wallet connection...');
           const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
           document.getElementById('walletAddress').textContent = accounts[0];
+
+          // Send wallet address back to Streamlit
+          console.log('[DEBUG] Sending wallet address to Streamlit:', accounts[0]);
+          window.parent.postMessage({ walletAddress: accounts[0] }, '*');
         } catch (err) {
+          console.error('[ERROR] Wallet connection failed:', err);
           alert('Wallet connection failed: ' + err.message);
+
+          // Send error back to Streamlit
+          window.parent.postMessage({ error: err.message }, '*');
         }
       } else {
+        console.error('[ERROR] MetaMask not detected.');
         alert('MetaMask is not installed. Please install it to continue.');
+
+        // Notify Streamlit of missing MetaMask
+        window.parent.postMessage({ error: 'MetaMask not detected' }, '*');
       }
     }
   </script>
