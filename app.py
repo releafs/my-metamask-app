@@ -16,15 +16,14 @@ def log_debug(message):
 
 log_debug("App started.")
 
-# Simulate a loading process
 try:
     st.markdown("## Connecting to MetaMask")
     log_debug("Rendering MetaMask connection iframe...")
     st.components.v1.html(
         """
         <iframe
-            src="public/index.html"
-            style="border:none; width:100%; height:300px;"
+            src="frontend/public/index.html"
+            style="border:none; width:100%; height:400px;"
             scrolling="no"
         ></iframe>
         """,
