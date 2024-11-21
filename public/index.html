@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MetaMask Wallet Connect</title>
+  <script src="https://cdn.jsdelivr.net/npm/@metamask/detect-provider"></script>
+  <script>
+    async function connectWallet() {
+      const provider = await detectEthereumProvider();
+
+      if (provider) {
+        // Check if MetaMask is installed
+        if (provider !== window.ethereum) {
+          alert('Multiple wallets detected. Please use MetaMask!');
+        }
+
+        try {
+          // Request wallet connection
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          document.getElementById('walletAddress').textContent = accounts[0];
+        } catch (err) {
+          alert('Wallet connection failed: ' + err.message);
+        }
+      } else {
+        alert('MetaMask is not installed. Please install it to continue.');
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>MetaMask Wallet Connect</h1>
+  <button onclick="connectWallet()">Connect Wallet</button>
+  <p>Your Wallet Address: <span id="walletAddress">Not connected</span></p>
+</body>
+</html>
