@@ -1,57 +1,47 @@
+import requests
 import streamlit as st
-from web3 import Web3
 
-# Connect to the Ethereum mainnet via Infura or another provider
-INFURA_URL = "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"
-web3 = Web3(Web3.HTTPProvider(INFURA_URL))
+INFURA_URL = "https://base-mainnet.infura.io/v3/f50128c6008d473fa2890724011b1a94"
 
-# Function to fetch token balances
-def fetch_token_balance(wallet_address, token_address):
-    # ERC-20 token ABI for 'balanceOf'
-    token_abi = [
-        {
-            "constant": True,
-            "inputs": [{"name": "_owner", "type": "address"}],
-            "name": "balanceOf",
-            "outputs": [{"name": "balance", "type": "uint256"}],
-            "type": "function",
-        }
-    ]
-    token_contract = web3.eth.contract(address=Web3.to_checksum_address(token_address), abi=token_abi)
-    balance = token_contract.functions.balanceOf(Web3.to_checksum_address(wallet_address)).call()
-    return balance
+# Function to get token balances
+def get_token_balance(wallet_address, contract_address, decimals):
+    data = {
+        "jsonrpc": "2.0",
+        "method": "eth_call",
+        "params": [
+            {
+                "to": contract_address,
+                "data": f"0x70a08231000000000000000000000000{wallet_address[2:]}"
+            },
+            "latest"
+        ],
+        "id": 1
+    }
 
-# Streamlit app UI
+    try:
+        response = requests.post(INFURA_URL, json=data)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx and 5xx)
+        balance = int(response.json()["result"], 16)
+        return balance / (10 ** decimals)
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching balance: {e}")
+        return None
+
+# Streamlit interface
 st.title("View Your Tokens")
-st.markdown("Connect your wallet and view your ERC-20 token balances.")
 
-# Wallet connection
-wallet_address = st.text_input("Enter your wallet address:")
+wallet_address = st.text_input("Enter your wallet address:", "")
 if wallet_address:
-    if web3.is_address(wallet_address):
-        st.success(f"Connected Wallet: {wallet_address}")
+    st.write(f"Connected Wallet: {wallet_address}")
 
-        # Add token contracts you want to fetch
-        tokens = {
-            "USDT (Tether)": "0xdac17f958d2ee523a2206206994597c13d831ec7",  # Example: Tether (USDT) contract
-            "DAI (Dai Stablecoin)": "0x6b175474e89094c44da98b954eedeac495271d0f",  # Example: DAI contract
-        }
+    tokens = [
+        {"name": "USDT", "contract": "0xdAC17F958D2ee523a2206206994597C13D831ec7", "decimals": 6},
+        {"name": "DAI", "contract": "0x6B175474E89094C44Da98b954EedeAC495271d0F", "decimals": 18},
+    ]
 
-        # Display token balances
-        st.markdown("### Token Balances")
-        for token_name, token_address in tokens.items():
-            try:
-                balance = fetch_token_balance(wallet_address, token_address)
-                st.write(f"{token_name}: {balance / (10 ** 18):,.4f}")
-            except Exception as e:
-                st.error(f"Error fetching balance for {token_name}: {e}")
-    else:
-        st.error("Invalid wallet address. Please enter a valid Ethereum address.")
-
-# Footer
-st.markdown(
-    """
-    ---
-    **Disclaimer:** This app uses the Ethereum mainnet via Infura. Ensure you have an active internet connection.
-    """
-)
+    for token in tokens:
+        balance = get_token_balance(wallet_address, token["contract"], token["decimals"])
+        if balance is not None:
+            st.write(f"{token['name']}: {balance}")
+        else:
+            st.error(f"Error fetching balance for {token['name']} ({token['contract']})")
