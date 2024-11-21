@@ -38,8 +38,8 @@ if "debug_logs" not in st.session_state:
     st.session_state["debug_logs"] = []
 
 # Update debug logs from the incoming messages
-if "debug" in st.experimental_get_query_params():
-    debug_message = st.experimental_get_query_params()["debug"][0]
+if "debug" in st.query_params:
+    debug_message = st.query_params["debug"][0]
     st.session_state["debug_logs"].append(debug_message)
 
 # Show debug logs
